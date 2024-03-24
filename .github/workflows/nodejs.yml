@@ -1,0 +1,59 @@
+name: index.js CI/CD Workflow
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [20.x]
+        
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+    
+    - name: Cache node modules
+      uses: actions/cache@v2
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-build-${{ hashFiles('**/package-lock.json') }}
+    
+    - name: Install dependencies
+      working-directory: ./devops-workshop-1
+      run: npm ci
+    
+    - name: Run tests
+      working-directory: ./devops-workshop-1
+      run: npm test
+
+  deploy:
+    needs: test
+    runs-on: windows-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '20.x'
+    
+    - name: Install dependencies
+      working-directory: ./devops-workshop-1
+      run: npm ci
+    
+    - name: Run deployment script
+      working-directory: ./devops-workshop-1
+      run: npm run deploy
+
